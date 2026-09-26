@@ -1,0 +1,9 @@
+
+student_resource/dataset/**
+**/dataset/**
+*.csv
+*.tsv
+*.parquet
+*.pkl
+*.npy
+*.zip

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#192a25">
+  <title>Meridian | Entity Resolution Workbench</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1e2a26;
+      --muted: #718079;
+      --line: #e1e8e3;
+      --canvas: #f5f7f4;
+      --paper: #fff;
+      --forest: #192a25;
+      --forest-soft: #284239;
+      --lime: #c6ed69;
+      --lime-dark: #45651b;
+      --coral: #dc7358;
+      --soft-green: #edf4e8;
+      --shadow: 0 12px 36px rgb(31 54 43 / 7%);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font: 14px/1.45 "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 238px minmax(0, 1fr); }
+    .sidebar { background: var(--forest); color: #edf4ef; padding: 25px 16px 18px; display: flex; flex-direction: column; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 27px; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--forest); background: var(--lime); }
+    .brand-name { font: 600 19px/1 Georgia, serif; letter-spacing: 0; }
+    .brand-caption { margin-top: 5px; color: #a5b4ac; font-size: 10px; text-transform: uppercase; letter-spacing: 1.25px; }
+    .nav-label { margin: 15px 10px 8px; color: #91a49a; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.15px; }
+    .nav-list { display: grid; gap: 4px; }
+    .nav-button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 11px; border: 0; border-radius: 7px; color: #c8d4cd; background: transparent; text-align: left; }
+    .nav-button:hover, .nav-button.active { color: #fff; background: var(--forest-soft); }
+    .nav-button.active { box-shadow: inset 3px 0 var(--lime); }
+    .nav-button svg, .icon-button svg, .primary-button svg, .secondary-button svg { width: 17px; height: 17px; flex: 0 0 auto; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-spacer { flex: 1; }
+    .privacy-note { padding: 13px 12px; border: 1px solid #395047; border-radius: 8px; color: #c8d4cd; font-size: 12px; }
+    .privacy-note strong { display: block; margin-bottom: 3px; color: var(--lime); font-size: 11px; }
+    main { min-width: 0; }
+    .topbar { min-height: 76px; padding: 16px clamp(20px, 4vw, 56px); display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--line); background: rgb(255 255 255 / 88%); }
+    .eyebrow { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.25px; }
+    h1 { margin: 3px 0 0; font: 400 25px/1.2 Georgia, serif; letter-spacing: 0; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .icon-button, .secondary-button, .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
+    .icon-button { width: 38px; padding: 0; }
+    .icon-button:disabled, .secondary-button:disabled, .primary-button:disabled { opacity: .45; cursor: not-allowed; }
+    .secondary-button:hover:not(:disabled), .icon-button:hover:not(:disabled) { border-color: #9aaa9e; background: #f8faf8; }
+    .primary-button { border-color: var(--forest); color: #fff; background: var(--forest); }
+    .primary-button:hover:not(:disabled) { background: var(--forest-soft); }
+    .content { max-width: 1500px; margin: 0 auto; padding: 28px clamp(20px, 4vw, 56px) 52px; }
+    .page-view[hidden] { display: none; }
+    .welcome-row { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+    .welcome-row h2 { margin: 0; font: 400 28px/1.2 Georgia, serif; letter-spacing: 0; }
+    .welcome-row p { margin: 7px 0 0; color: var(--muted); }
+    .status-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); background: #fff; font-size: 12px; white-space: nowrap; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #aab7af; }
+    .status-pill.ready .status-dot { background: #72a342; }
+    .status-pill.ready { color: #45651b; border-color: #d5e4c2; background: #f2f8e9; }
+    .drop-zone { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 118px; margin-bottom: 20px; padding: 22px 25px; border: 1px dashed #a8b8ad; border-radius: 9px; background: linear-gradient(110deg, #fff 15%, #f2f7ec 100%); transition: border-color .15s, background .15s; }
+    .drop-zone.dragging { border-color: #709631; background: #eef6de; }
+    .drop-copy { display: flex; align-items: center; gap: 15px; }
+    .drop-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 9px; color: var(--lime-dark); background: #eaf3d9; }
+    .drop-icon svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .drop-copy strong { display: block; font-size: 14px; }
+    .drop-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .drop-actions { display: flex; align-items: center; gap: 9px; }
+    #file-input { display: none; }
+    .file-status { margin: -8px 0 18px; color: var(--muted); font-size: 12px; }
+    .file-status.error { color: #ae4c38; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { min-height: 120px; padding: 16px 17px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+    .metric-label { color: var(--muted); font-size: 12px; }
+    .metric-value { margin-top: 12px; font: 400 29px/1 Georgia, serif; letter-spacing: 0; }
+    .metric-foot { margin-top: 8px; color: var(--muted); font-size: 11px; }
+    .overview-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr); gap: 14px; margin-top: 16px; }
+    .panel { min-width: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .panel-header h3 { margin: 0; font-size: 14px; font-weight: 650; }
+    .panel-header p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .panel-body { padding: 17px 18px; }
+    .source-list { display: grid; gap: 13px; }
+    .source-row { display: grid; grid-template-columns: 74px minmax(0, 1fr) 48px; align-items: center; gap: 12px; }
+    .source-code { font-size: 11px; font-weight: 700; }
+    .source-track { height: 8px; overflow: hidden; border-radius: 99px; background: #eff2ef; }
+    .source-fill { width: 0; height: 100%; border-radius: inherit; background: var(--forest-soft); transition: width .35s ease; }
+    .source-row:nth-child(2) .source-fill { background: #739145; }
+    .source-row:nth-child(3) .source-fill { background: var(--coral); }
+    .source-count { color: var(--muted); font-size: 11px; text-align: right; }
+    .country-list { display: grid; gap: 10px; }
+    .country-row { display: flex; align-items: center; justify-content: space-between; color: var(--ink); }
+    .country-row span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .empty-state { padding: 31px 18px; color: var(--muted); text-align: center; }
+    .empty-state strong { display: block; margin-bottom: 5px; color: var(--ink); font-size: 13px; }
+    .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin: 17px 0; }
+    .toolbar h2 { margin: 0; font: 400 23px/1.2 Georgia, serif; letter-spacing: 0; }
+    .toolbar p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .search-field { position: relative; min-width: 225px; }
+    .search-field svg { position: absolute; top: 10px; left: 11px; width: 16px; height: 16px; stroke: #75847c; stroke-width: 1.8; fill: none; stroke-linecap: round; }
+    .search-field input, .select-field { min-height: 37px; border: 1px solid var(--line); border-radius: 6px; outline: 0; color: var(--ink); background: #fff; }
+    .search-field input { width: 100%; padding: 0 11px 0 35px; }
+    .search-field input:focus, .select-field:focus { border-color: #7d9a5b; box-shadow: 0 0 0 3px rgb(112 150 49 / 12%); }
+    .select-field { padding: 0 30px 0 10px; }
+    .review-layout { display: grid; grid-template-columns: minmax(250px, .72fr) minmax(0, 1.7fr); gap: 14px; min-height: 435px; }
+    .entity-list { max-height: 590px; overflow: auto; }
+    .entity-item { display: flex; width: 100%; flex-direction: column; gap: 3px; padding: 12px 15px; border: 0; border-bottom: 1px solid #edf0ed; background: #fff; text-align: left; }
+    .entity-item:hover { background: #f7f9f6; }
+    .entity-item.active { background: #f0f5e9; box-shadow: inset 3px 0 #86a94c; }
+    .entity-item strong { font-size: 12px; }
+    .entity-item span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .candidate-list { display: grid; }
+    .candidate-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: start; gap: 11px; padding: 13px 0; border-bottom: 1px solid #edf0ed; }
+    .candidate-row:last-child { border-bottom: 0; }
+    .candidate-row input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: #4c7130; }
+    .candidate-name { font-weight: 600; }
+    .candidate-meta { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .source-badge { padding: 4px 7px; border: 1px solid var(--line); border-radius: 4px; color: #4f6057; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .match-tag { padding: 4px 7px; border-radius: 4px; color: #45651b; background: #edf5e4; font-size: 10px; font-weight: 700; }
+    .data-table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 10px 13px; color: var(--muted); background: #f8faf8; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .55px; white-space: nowrap; }
+    td { max-width: 330px; padding: 11px 13px; border-top: 1px solid #edf0ed; font-size: 12px; vertical-align: top; }
+    td.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .table-id { font-weight: 700; white-space: nowrap; }
+    .table-country { color: var(--muted); }
+    .model-note { display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; padding: 12px 14px; border-left: 3px solid #a6c96a; color: #536456; background: #f0f5e9; font-size: 11px; }
+    .model-note strong { color: #32472c; }
+    .model-note svg { width: 16px; height: 16px; flex: 0 0 auto; stroke: #648238; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .toast { position: fixed; right: 22px; bottom: 22px; z-index: 5; max-width: min(400px, calc(100vw - 44px)); padding: 12px 16px; border-radius: 6px; color: #fff; background: var(--forest); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .18s, transform .18s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 900px) {
+      .app-shell { grid-template-columns: 70px minmax(0, 1fr); }
+      .sidebar { padding-inline: 10px; }
+      .brand { justify-content: center; padding-inline: 0; }
+      .brand > div:last-child, .nav-label, .nav-button span, .privacy-note { display: none; }
+      .nav-button { justify-content: center; padding: 11px 0; }
+      .overview-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { position: sticky; top: 0; z-index: 3; flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 14px; }
+      .brand { padding: 0; }
+      .nav-list { display: flex; gap: 3px; }
+      .nav-button { width: 42px; height: 40px; }
+      .sidebar-spacer, .nav-label { display: none; }
+      .topbar { min-height: 66px; padding: 11px 16px; }
+      h1 { font-size: 21px; }
+      .top-actions .button-label { display: none; }
+      .content { padding: 22px 15px 35px; }
+      .welcome-row { align-items: flex-start; flex-direction: column; }
+      .welcome-row h2 { font-size: 24px; }
+      .drop-zone { align-items: flex-start; flex-direction: column; padding: 17px; }
+      .drop-actions { width: 100%; }
+      .drop-actions button { flex: 1; }
+      .metrics-grid { gap: 8px; }
+      .metric { min-height: 105px; padding: 13px; }
+      .metric-value { font-size: 25px; }
+      .review-layout { grid-template-columns: 1fr; }
+      .entity-list { display: flex; max-height: 160px; overflow: auto; }
+      .entity-item { min-width: 175px; border-right: 1px solid #edf0ed; border-bottom: 0; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-tools { display: flex; width: 100%; gap: 8px; }
+      .search-field { flex: 1; min-width: 0; }
+      .select-field { max-width: 140px; }
+      .status-pill { font-size: 11px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.8 12h16.4M12 3.5c2.2 2.4 3.2 5.2 3.2 8.5s-1 6.1-3.2 8.5c-2.2-2.4-3.2-5.2-3.2-8.5s1-6.1 3.2-8.5Z"/></svg></div>
+        <div><div class="brand-name">Meridian</div><div class="brand-caption">Entity workbench</div></div>
+      </div>
+      <div class="nav-label">Workspace</div>
+      <nav class="nav-list">
+        <button class="nav-button active" data-view="overview" aria-label="Overview" title="Overview"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg><span>Overview</span></button>
+        <button class="nav-button" data-view="candidates" aria-label="Candidate review" title="Candidate review"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5M8 10.5h5M10.5 8v5"/></svg><span>Candidate review</span></button>
+        <button class="nav-button" data-view="records" aria-label="Source records" title="Source records"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg><span>Source records</span></button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="privacy-note"><strong>LOCAL WORKSPACE</strong>Files stay in this browser. Nothing is uploaded.</div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div><div class="eyebrow">ML Challenge 2026</div><h1>Business entity resolution</h1></div>
+        <div class="top-actions">
+          <button class="secondary-button" id="candidate-export" disabled title="Download candidate_pairs.tsv"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg><span class="button-label">Candidates</span></button>
+          <button class="primary-button" id="match-export" disabled title="Download matching_results.tsv"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg><span class="button-label">Export matches</span></button>
+        </div>
+      </header>
+      <div class="content">
+        <section class="page-view" id="view-overview">
+          <div class="welcome-row">
+            <div><h2>Resolution workspace</h2><p>Load your test sources to generate and review match candidates.</p></div>
+            <div class="status-pill" id="workspace-status"><span class="status-dot"></span><span>Waiting for source files</span></div>
+          </div>
+          <div class="drop-zone" id="drop-zone">
+            <div class="drop-copy"><div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg></div><div><strong>Bring in the three test source files</strong><span>Choose or drop test_source1.tsv, test_source2.tsv and test_source3.tsv</span></div></div>
+            <div class="drop-actions"><input id="file-input" type="file" accept=".tsv,.txt,text/tab-separated-values" multiple><button class="secondary-button" id="browse-files"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3z"/><path d="M3 9h18"/></svg>Select TSV files</button><button class="primary-button" id="generate" disabled><svg viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z"/></svg>Generate candidates</button></div>
+          </div>
+          <div class="file-status" id="file-status" aria-live="polite">No files loaded. The three test source files are required.</div>
+          <div class="metrics-grid">
+            <div class="metric"><div class="metric-label">Source 1 entities</div><div class="metric-value" id="metric-s1">—</div><div class="metric-foot">Reference records</div></div>
+            <div class="metric"><div class="metric-label">Candidate pairs</div><div class="metric-value" id="metric-pairs">—</div><div class="metric-foot">Exact normalized-name hits</div></div>
+            <div class="metric"><div class="metric-label">Reviewed matches</div><div class="metric-value" id="metric-matches">—</div><div class="metric-foot">Selected candidate pairs</div></div>
+            <div class="metric"><div class="metric-label">No-candidate entities</div><div class="metric-value" id="metric-empty">—</div><div class="metric-foot">No exact-name hits</div></div>
+          </div>
+          <div class="overview-grid">
+            <section class="panel"><div class="panel-header"><div><h3>Source coverage</h3><p>Record counts from the imported test files</p></div><button class="icon-button" data-go="records" aria-label="Open source records" title="Open source records"><svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div><div class="panel-body"><div class="source-list" id="source-coverage"></div></div></section>
+            <section class="panel"><div class="panel-header"><div><h3>Country labels</h3><p>All observed labels, including unseen countries</p></div></div><div class="panel-body"><div class="country-list" id="country-list"><div class="empty-state"><strong>Waiting for data</strong>Country counts will appear after import.</div></div></div></section>
+          </div>
+          <div class="model-note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><div><strong>Baseline, not a trained model.</strong> Candidate generation follows the current Python exact normalized-name blocker. All generated candidates are initially selected as matches; review them before export. Data stays local to this page.</div></div>
+        </section>
+        <section class="page-view" id="view-candidates" hidden>
+          <div class="toolbar"><div><h2>Candidate review</h2><p id="review-summary">Load all three source files and generate candidates to begin.</p></div><div class="search-field"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="entity-search" type="search" placeholder="Find a Source 1 entity" aria-label="Find a Source 1 entity"></div></div>
+          <div class="review-layout">
+            <section class="panel"><div class="panel-header"><div><h3>Source 1 entities</h3><p>Select an entity to inspect candidates</p></div></div><div class="entity-list" id="entity-list"><div class="empty-state"><strong>No entities yet</strong>Load data from the overview.</div></div></section>
+            <section class="panel"><div class="panel-header"><div><h3 id="selected-title">Select an entity</h3><p id="selected-subtitle">Candidate records will appear here</p></div><span class="status-pill" id="selected-count">0 candidates</span></div><div class="panel-body"><div class="candidate-list" id="candidate-list"><div class="empty-state"><strong>Ready when you are</strong>Import your sources to start reviewing.</div></div></div></section>
+          </div>
+        </section>
+        <section class="page-view" id="view-records" hidden>
+          <div class="toolbar"><div><h2>Source records</h2><p id="record-summary">Explore imported records across all sources.</p></div><div class="toolbar-tools" style="display:flex;gap:8px"><div class="search-field"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="record-search" type="search" placeholder="Search names, IDs, addresses" aria-label="Search records"></div><select class="select-field" id="source-filter" aria-label="Filter by source"><option value="all">All sources</option><option value="S1">Source 1</option><option value="S2">Source 2</option><option value="S3">Source 3</option></select></div></div>
+          <section class="panel"><div class="data-table-wrap"><table><thead><tr><th>Entity ID</th><th>Business name</th><th>Business address</th><th>Country</th></tr></thead><tbody id="record-rows"><tr><td colspan="4"><div class="empty-state"><strong>No records loaded</strong>Import your source TSV files from the overview.</div></td></tr></tbody></table></div></section>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      const sourceFiles = { S1: null, S2: null, S3: null };
+      const records = { S1: [], S2: [], S3: [] };
+      const candidates = new Map();
+      const selectedMatches = new Map();
+      let selectedEntityId = null;
+      let toastTimer;
+      const byId = (id) => document.getElementById(id);
+      const formatNumber = (number) => new Intl.NumberFormat().format(number);
+      const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
+
+      function parseTsv(text) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let quoted = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          if (quoted) {
+            if (char === "\"" && text[index + 1] === "\"") { field += "\""; index += 1; }
+            else if (char === "\"") quoted = false;
+            else field += char;
+          } else if (char === "\"" && field.length === 0) quoted = true;
+          else if (char === "\t") { row.push(field); field = ""; }
+          else if (char === "\n" || char === "\r") {
+            if (char === "\r" && text[index + 1] === "\n") index += 1;
+            row.push(field); field = "";
+            if (row.some((value) => value !== "")) rows.push(row);
+            row = [];
+          } else field += char;
+        }
+        row.push(field);
+        if (row.some((value) => value !== "")) rows.push(row);
+        if (!rows.length) throw new Error("The file is empty.");
+        const headers = rows.shift().map((value) => value.replace(/^\uFEFF/, "").trim());
+        for (const required of ["entity_id", "business_name", "business_address", "country"]) {
+          if (!headers.includes(required)) throw new Error(`Missing required column: ${required}`);
+        }
+        return rows.map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""])));
+      }
+
+      function detectSource(file) {
+        const filename = file.name.toLowerCase();
+        const match = filename.match(/(?:test_)?source([123])\.tsv$/);
+        if (!match) return null;
+        return `S${match[1]}`;
+      }
+
+      async function loadFiles(files) {
+        const fileList = Array.from(files);
+        if (!fileList.length) return;
+        const unknown = fileList.filter((file) => !detectSource(file));
+        if (unknown.length) { showFileStatus(`Unrecognized file name: ${unknown[0].name}. Use test_source1.tsv, test_source2.tsv, and test_source3.tsv.`, true); return; }
+        try {
+          for (const file of fileList) {
+            const source = detectSource(file);
+            const parsed = parseTsv(await file.text());
+            sourceFiles[source] = file.name;
+            records[source] = parsed;
+          }
+          candidates.clear();
+          selectedMatches.clear();
+          selectedEntityId = null;
+          renderAll();
+          const loaded = Object.entries(sourceFiles).filter(([, filename]) => filename).map(([source]) => source).join(", ");
+          const missing = Object.keys(sourceFiles).filter((source) => !sourceFiles[source]);
+          showFileStatus(missing.length ? `Loaded ${loaded}. Still needed: ${missing.join(", ")}.` : `All sources loaded: ${Object.values(sourceFiles).join(", ")}.`);
+          byId("generate").disabled = missing.length > 0;
+        } catch (error) {
+          showFileStatus(error.message || "Could not read this TSV file.", true);
+        }
+      }
+
+      function normalizeName(value) {
+        let name = String(value ?? "").trim().toLowerCase().normalize("NFKC").replace(/&/g, " and ").replace(/[+.\-]/g, " ").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+        const replacements = [["pvt", "private"], ["private ltd", "private limited"], ["pvt ltd", "private limited"], ["ltd", "limited"], ["inc", "incorporated"], ["corp", "corporation"], ["co", "company"]];
+        for (const [from, to] of replacements) name = name.replace(new RegExp(`\\b${from}\\b`, "g"), to);
+        return name.replace(/\b(private limited|limited|incorporated|corporation|llc|company|llp|plc)\b/g, "").replace(/\s+/g, " ").trim();
+      }
+
+      function generateCandidates() {
+        if (!records.S1.length || !records.S2.length || !records.S3.length) return;
+        const targetIndex = new Map();
+        for (const record of [...records.S2, ...records.S3]) {
+          const normalized = normalizeName(record.business_name);
+          if (!normalized) continue;
+          if (!targetIndex.has(normalized)) targetIndex.set(normalized, []);
+          targetIndex.get(normalized).push(record);
+        }
+        candidates.clear();
+        selectedMatches.clear();
+        for (const sourceRecord of records.S1) {
+          const normalized = normalizeName(sourceRecord.business_name);
+          const found = normalized ? (targetIndex.get(normalized) ?? []).slice().sort((a, b) => a.entity_id.localeCompare(b.entity_id)) : [];
+          candidates.set(sourceRecord.entity_id, found);
+          selectedMatches.set(sourceRecord.entity_id, new Set(found.map((record) => record.entity_id)));
+        }
+        selectedEntityId = records.S1[0]?.entity_id ?? null;
+        renderAll();
+        showToast(`Generated ${formatNumber([...candidates.values()].reduce((sum, list) => sum + list.length, 0))} exact-name candidates.`);
+        setView("candidates");
+      }
+
+      function candidateCount() { return [...candidates.values()].reduce((sum, list) => sum + list.length, 0); }
+      function matchCount() { return [...selectedMatches.values()].reduce((sum, selected) => sum + selected.size, 0); }
+
+      function renderMetrics() {
+        const hasCandidates = candidates.size > 0;
+        byId("metric-s1").textContent = formatNumber(records.S1.length);
+        byId("metric-pairs").textContent = hasCandidates ? formatNumber(candidateCount()) : "—";
+        byId("metric-matches").textContent = hasCandidates ? formatNumber(matchCount()) : "—";
+        byId("metric-empty").textContent = hasCandidates ? formatNumber([...candidates.values()].filter((list) => list.length === 0).length) : "—";
+        const allLoaded = Object.values(sourceFiles).every(Boolean);
+        byId("workspace-status").classList.toggle("ready", allLoaded);
+        byId("workspace-status").lastElementChild.textContent = allLoaded ? (hasCandidates ? "Candidates generated" : "Sources ready") : "Waiting for source files";
+        byId("candidate-export").disabled = !hasCandidates;
+        byId("match-export").disabled = !hasCandidates;
+        byId("source-coverage").innerHTML = ["S1", "S2", "S3"].map((source) => {
+          const max = Math.max(records.S1.length, records.S2.length, records.S3.length, 1);
+          const width = records[source].length ? Math.max(3, records[source].length / max * 100) : 0;
+          return `<div class="source-row"><span class="source-code">Source ${source.slice(1)}</span><div class="source-track"><div class="source-fill" style="width:${width}%"></div></div><span class="source-count">${formatNumber(records[source].length)}</span></div>`;
+        }).join("");
+        const countryCounts = new Map();
+        for (const source of ["S1", "S2", "S3"]) for (const record of records[source]) {
+          const country = String(record.country || "Unknown").trim() || "Unknown";
+          countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+        }
+        const countries = [...countryCounts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        byId("country-list").innerHTML = countries.length ? countries.map(([country, count]) => `<div class="country-row"><span>${escapeHtml(country)}</span><span>${formatNumber(count)}</span></div>`).join("") : '<div class="empty-state"><strong>Waiting for data</strong>Country counts will appear after import.</div>';
+        byId("candidate-export").disabled = !hasCandidates;
+        byId("match-export").disabled = !hasCandidates;
+      }
+
+      function renderEntities() {
+        const search = byId("entity-search").value.trim().toLowerCase();
+        const filtered = records.S1.filter((record) => `${record.entity_id} ${record.business_name}`.toLowerCase().includes(search));
+        byId("review-summary").textContent = candidates.size ? `${formatNumber(records.S1.length)} reference entities · ${formatNumber(candidateCount())} candidate pairs` : "Load all three source files and generate candidates to begin.";
+        byId("entity-list").innerHTML = filtered.length ? filtered.map((record) => {
+          const count = candidates.get(record.entity_id)?.length;
+          return `<button class="entity-item${record.entity_id === selectedEntityId ? " active" : ""}" data-entity="${escapeHtml(record.entity_id)}"><strong>${escapeHtml(record.entity_id)}${count === undefined ? "" : ` · ${count}`}</strong><span>${escapeHtml(record.business_name || "Unnamed business")}</span></button>`;
+        }).join("") : '<div class="empty-state"><strong>No matching entities</strong>Try a different search.</div>';
+        byId("entity-list").querySelectorAll("[data-entity]").forEach((button) => button.addEventListener("click", () => { selectedEntityId = button.dataset.entity; renderEntities(); renderSelectedCandidates(); }));
+        renderSelectedCandidates();
+      }
+
+      function renderSelectedCandidates() {
+        const sourceRecord = records.S1.find((record) => record.entity_id === selectedEntityId);
+        const found = candidates.get(selectedEntityId) ?? [];
+        byId("selected-title").textContent = sourceRecord ? `${sourceRecord.entity_id} · ${sourceRecord.business_name || "Unnamed business"}` : "Select an entity";
+        byId("selected-subtitle").textContent = sourceRecord ? `${sourceRecord.business_address || "Address not provided"} · ${sourceRecord.country || "Country unknown"}` : "Candidate records will appear here";
+        byId("selected-count").lastElementChild.textContent = `${found.length} candidate${found.length === 1 ? "" : "s"}`;
+        byId("candidate-list").innerHTML = !sourceRecord ? '<div class="empty-state"><strong>Ready when you are</strong>Import your sources to start reviewing.</div>' : found.length ? found.map((record) => {
+          const checked = selectedMatches.get(selectedEntityId)?.has(record.entity_id) ?? false;
+          return `<label class="candidate-row"><input type="checkbox" data-match="${escapeHtml(record.entity_id)}" ${checked ? "checked" : ""} aria-label="Mark ${escapeHtml(record.entity_id)} as a match"><span><span class="candidate-name">${escapeHtml(record.business_name || "Unnamed business")}</span><span class="candidate-meta">${escapeHtml(record.entity_id)} · ${escapeHtml(record.business_address || "Address not provided")} · ${escapeHtml(record.country || "Country unknown")}</span></span><span class="source-badge">${record.entity_id.startsWith("S2-") ? "SOURCE 2" : "SOURCE 3"}</span></label>`;
+        }).join("") : '<div class="empty-state"><strong>No exact-name candidates</strong>This entity will export with an empty match list.</div>';
+        byId("candidate-list").querySelectorAll("[data-match]").forEach((checkbox) => checkbox.addEventListener("change", () => {
+          const selected = selectedMatches.get(selectedEntityId);
+          if (checkbox.checked) selected.add(checkbox.dataset.match); else selected.delete(checkbox.dataset.match);
+          renderMetrics();
+        }));
+      }
+
+      function renderRecords() {
+        const search = byId("record-search").value.trim().toLowerCase();
+        const sourceFilter = byId("source-filter").value;
+        const filtered = ["S1", "S2", "S3"].filter((source) => sourceFilter === "all" || sourceFilter === source).flatMap((source) => records[source]).filter((record) => `${record.entity_id} ${record.business_name} ${record.business_address} ${record.country}`.toLowerCase().includes(search));
+        byId("record-summary").textContent = `${formatNumber(filtered.length)} records shown`;
+        byId("record-rows").innerHTML = filtered.length ? filtered.slice(0, 500).map((record) => `<tr><td class="table-id">${escapeHtml(record.entity_id)}</td><td class="truncate" title="${escapeHtml(record.business_name)}">${escapeHtml(record.business_name)}</td><td class="truncate" title="${escapeHtml(record.business_address)}">${escapeHtml(record.business_address)}</td><td class="table-country">${escapeHtml(record.country)}</td></tr>`).join("") : '<tr><td colspan="4"><div class="empty-state"><strong>No records found</strong>Import files or adjust your filters.</div></td></tr>';
+        if (filtered.length > 500) byId("record-summary").textContent += " · first 500 displayed";
+      }
+
+      function renderAll() { renderMetrics(); renderEntities(); renderRecords(); }
+      function setView(view) {
+        document.querySelectorAll(".page-view").forEach((section) => { section.hidden = section.id !== `view-${view}`; });
+        document.querySelectorAll(".nav-button").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+      }
+      function showFileStatus(message, error = false) { byId("file-status").textContent = message; byId("file-status").classList.toggle("error", error); }
+      function showToast(message) {
+        const toast = byId("toast"); toast.textContent = message; toast.classList.add("show");
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+      }
+      function downloadTsv(filename, headers, rows) {
+        const escapeCell = (cell) => {
+          const value = String(cell ?? "");
+          return /[\t\r\n\"]/.test(value) ? `"${value.replace(/\"/g, "\"\"")}"` : value;
+        };
+        const content = [headers, ...rows].map((row) => row.map(escapeCell).join("\t")).join("\r\n") + "\r\n";
+        const url = URL.createObjectURL(new Blob(["\uFEFF", content], { type: "text/tab-separated-values;charset=utf-8" }));
+        const link = document.createElement("a"); link.href = url; link.download = filename; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`${filename} downloaded.`);
+      }
+      function exportCandidates() {
+        if (!candidates.size) return;
+        downloadTsv("candidate_pairs.tsv", ["source1_entity_id", "candidate_entity_ids"], records.S1.map((record) => [record.entity_id, (candidates.get(record.entity_id) ?? []).map((candidate) => candidate.entity_id).join(",")]));
+      }
+      function exportMatches() {
+        if (!candidates.size) return;
+        downloadTsv("matching_results.tsv", ["source1_entity_id", "matched_entity_ids"], records.S1.map((record) => [record.entity_id, [...(selectedMatches.get(record.entity_id) ?? [])].join(",")]));
+      }
+
+      byId("browse-files").addEventListener("click", () => byId("file-input").click());
+      byId("file-input").addEventListener("change", (event) => { loadFiles(event.target.files); event.target.value = ""; });
+      byId("generate").addEventListener("click", generateCandidates);
+      byId("candidate-export").addEventListener("click", exportCandidates);
+      byId("match-export").addEventListener("click", exportMatches);
+      byId("entity-search").addEventListener("input", renderEntities);
+      byId("record-search").addEventListener("input", renderRecords);
+      byId("source-filter").addEventListener("change", renderRecords);
+      document.querySelectorAll(".nav-button").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+      document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.go)));
+      const dropZone = byId("drop-zone");
+      for (const eventName of ["dragenter", "dragover"]) dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.add("dragging"); });
+      for (const eventName of ["dragleave", "drop"]) dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove("dragging"); });
+      dropZone.addEventListener("drop", (event) => loadFiles(event.dataTransfer.files));
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
