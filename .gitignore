@@ -1,6 +1,10 @@
 
 student_resource/dataset/**
 **/dataset/**
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
 *.csv
 *.tsv
 *.parquet
